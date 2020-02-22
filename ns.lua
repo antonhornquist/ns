@@ -459,16 +459,16 @@ function()
       until unbalanced_parens == 0
     end
 
-    --[[
     -- TODO: alt 1, pcall
     local ok, err = pcall(rep, str)
     if not ok then
-    print("error: "..err.."")
-    print(debug.traceback())
+      print("error: "..err.."")
+      print(debug.traceback())
     end
-    ]]
     -- TODO: alt 2, die on error, more extensive error reporting
+    --[[
     rep(str)
+    ]]
   until false
 end
 
@@ -1028,7 +1028,7 @@ function()
     -- r4rs essential procedure: (string-length string)
     ['string-length'] = function(string)
       -- TODO: validate it's String?
-      return #string
+      return #get_str(string)
     end,
     -- r4rs essential procedure: (string-ref string k)
     ['string-ref'] = function(string, k)
@@ -1201,139 +1201,139 @@ function(env)
 
 (define assq
   (lambda (obj alist)
-	(cond
-	  [(null? alist) #f]
-	  [(eq? obj (caar alist)) (car alist)]
-	  [else (assoc obj (cdr alist))])))
+    (cond
+      [(null? alist) #f]
+      [(eq? obj (caar alist)) (car alist)]
+      [else (assq obj (cdr alist))])))
 
 ; r4rs essential procedure: (assv obj alist)
 ;
 
 (define assv
   (lambda (obj alist)
-	(cond
-	  [(null? alist) #f]
-	  [(eqv? obj (caar alist)) (car alist)]
-	  [else (assoc obj (cdr alist))])))
+    (cond
+      [(null? alist) #f]
+      [(eqv? obj (caar alist)) (car alist)]
+      [else (assv obj (cdr alist))])))
 
 ; r4rs essential procedure: (assoc obj alist)
 ;
 
 (define assoc
   (lambda (obj alist)
-	(cond
-	  [(null? alist) #f]
-	  [(equal? obj (caar alist)) (car alist)]
-	  [else (assoc obj (cdr alist))])))
+    (cond
+      [(null? alist) #f]
+      [(equal? obj (caar alist)) (car alist)]
+      [else (assoc obj (cdr alist))])))
 
 ; r4rs essential procedure: (memq obj list)
 ;
 
 (define memq
   (lambda (obj list)
-	(cond
-	  [(null? list) #f]
-	  [(eq? obj (car list)) list]
-	  [else (member obj (cdr list))])))
+    (cond
+      [(null? list) #f]
+      [(eq? obj (car list)) list]
+      [else (memq obj (cdr list))])))
 
 ; r4rs essential procedure: (memv obj list)
 ;
 
 (define memv
   (lambda (obj list)
-	(cond
-	  [(null? list) #f]
-	  [(eqv? obj (car list)) list]
-	  [else (member obj (cdr list))])))
+    (cond
+      [(null? list) #f]
+      [(eqv? obj (car list)) list]
+      [else (memv obj (cdr list))])))
 
 ; r4rs essential procedure: (member obj list)
 ;
 
 (define member
   (lambda (obj list)
-	(cond
-	  [(null? list) #f]
-	  [(equal? obj (car list)) list]
-	  [else (member obj (cdr list))])))
+    (cond
+      [(null? list) #f]
+      [(equal? obj (car list)) list]
+      [else (member obj (cdr list))])))
 
 ; r4rs essential procedures: caar ... cdddr
 ;
 
 (define caar
   (lambda (list)
-	(car (car list))))
+    (car (car list))))
 
 ;
 
 (define caar
   (lambda (list)
-	(car (car list))))
+    (car (car list))))
 
 ;
 
 (define cadr
   (lambda (list)
-	(car (cdr list))))
+    (car (cdr list))))
 
 ;
 
 (define cdar
   (lambda (list)
-	(cdr (car list))))
+    (cdr (car list))))
 
 ;
 
 (define cddr
   (lambda (list)
-	(cdr (cdr list))))
+    (cdr (cdr list))))
 
 ;
 
 (define caaar
   (lambda (list)
-	(car (car (car list)))))
+    (car (car (car list)))))
 
 ;
 
 (define caadr
   (lambda (list)
-	(car (car (cdr list)))))
+    (car (car (cdr list)))))
 
 ;
 
 (define cadar
   (lambda (list)
-	(car (cdr (car list)))))
+    (car (cdr (car list)))))
 
 ;
 
 (define caddr
   (lambda (list)
-	(car (cdr (cdr list)))))
+    (car (cdr (cdr list)))))
 
 ;
 
 (define cdaar
   (lambda (list)
-	(cdr (car (car list)))))
+    (cdr (car (car list)))))
 
 ;
 
 (define cdadr
   (lambda (list)
-	(cdr (car (cdr list)))))
+    (cdr (car (cdr list)))))
 
 ;
 
 (define cddar
   (lambda (list)
-	(cdr (cdr (car list)))))
+    (cdr (cdr (car list)))))
 
 ;
 
 (define cdddr
   (lambda (list)
-	(cdr (cdr (cdr list)))))
+    (cdr (cdr (cdr list)))))
 ;
 ]]
 
@@ -1622,12 +1622,12 @@ atom =
 function(ss)
   -- TODO: remove rg_float = "(-?(?:0|[1-9]\\d*)(?:\\.\\d+(?i:e[+-]?\\d+)|\\.\\d+|(?i:e[+-]?\\d+)))"
   -- TODO: remove rg_integer = "[+-]?%d+"
-  local rg_symbol = "[a-zA-Z+-.*/<=>!?:%$%_&~%^][0-9a-zA-Z+-.*/<=>!?:%$%_&~%^]*"
-  local rg_char = "#\\[0-9a-zA-Z ]"
+  local rg_symbol = "[a-zA-Z+-./<=>*!?:%$%_&~%^][0-9a-zA-Z+-./<=>*!?:%$%_&~%^]*"
+  local rg_char = "#\\[0-9a-zA-Z ]" -- TODO: not enough, will include #\mutliple_chars
   local rg_char_space = "#\\space"
   local rg_char_newline = "#\\newline"
   local rg_boolean = "#[ft]"
-  local rg_string = "\"[0-9a-zA-Z_ @*=/+-:;,.()?&\\\\'']*\""
+  local rg_string = "\"[0-9a-zA-Z_!| *@=/+-<>:;,.()?&#\\\\'']*\""
 
   local scan_number = function(ss)
     local rg_token = "[-%d.e]+"
