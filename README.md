@@ -1,2 +1,2 @@
 # ns
-a scheme-like programming language
+an experimental scheme-like programming language
