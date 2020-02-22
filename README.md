@@ -1,2 +1,2 @@
 # ns
-an scheme-inspired programming language (experimental)
+a scheme-inspired programming language (experimental)
