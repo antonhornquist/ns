@@ -1,2 +1,2 @@
 # ns
-a programming language
+a scheme-like programming language
