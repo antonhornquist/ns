@@ -1,2 +1,2 @@
 # ns
-a lisp-inspired programming language (experimental)
+a scheme-inspired programming language for gluing things together (experimental)
