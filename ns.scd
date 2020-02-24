@@ -1,22 +1,24 @@
 (
-// an ad-hoc, informally-specified, bug-ridden, slow implementation of half of Common Lisp.
-
 /*
 TODO: assoc / assv / assq TODO
-TODO: (sc only) suspicion that slow ss_* functions has performance penalty - check by testing parsed statements in define_non_prim_standard_procedures
+TODO: (sc only) ss_* functions have performance penalty - improve
 TODO: (sc only) for clarity, use .value() over .()
 */
 
 /*
+an ad-hoc, informally-specified, bug-ridden, slow implementation of half of Common Lisp.
 
 inspiration:
 https://norvig.com/lispy.html
 scheme r4rs @ https://people.csail.mit.edu/jaffer/r4rs_toc.html
+dybvig's the scheme programming language: https://www.scheme.com/tspl2
+
 TODO r4rs defines 146 essential procedures excluding additional car/cdr permutations
 
-a few differences to r4rs:
+differences to r4rs:
+no TCO. yet.
 no support for macros (macros are not required in r4rs)
-no TCO yet
+no call-cc
 symbol case is significant
 strings are immutable
 quasiquote does not support nesting
@@ -132,7 +134,7 @@ rep =
 	// TODO var funcName = 'rep';
 	var val = read_eval.value(str, env ? currentEnvironment['_NS_ENV'] ? currentEnvironment);
 	if (val.notNil) {
-		scheme_str.value(val);
+		scheme_str.value(val); // SClang does the actual print part to the Post Window
 	};
 };
 
@@ -379,7 +381,7 @@ standard_procedures =
 		},
 		// r4rs essential procedure: (eq? obj1 obj2)
 		'eq?': { |obj1, obj2|
-			obj1 === obj2
+			(obj1 === obj2) or: (is_empty_list.value(obj1) and: is_empty_list.value(obj2))
 		},
 		// r4rs essential procedure: (eqv? obj1 obj2)
 		'eqv?': { |obj1, obj2|
@@ -840,11 +842,12 @@ standard_procedures =
 		}
 	);
 
-	define_non_prim_standard_procedures_2.value(procedures);
+	define_non_prim_standard_procedures.value(procedures);
 
 	procedures;
 };
 
+// re, assoc: http://www.cs.utexas.edu/ftp/garbage/cs345/schintro-v13/schintro_106.html
 var
 define_non_prim_standard_procedures =
 { |env|
@@ -993,22 +996,16 @@ define_non_prim_standard_procedures =
 ;
 ";
 
+/*
 	standard_procedure_defs.split($;).select { |str|
 		str.contains("(define ")
 	}.do { |standard_procedure_def|
 		read.value(standard_procedure_def).postcs;
 		eval.value(read.value(standard_procedure_def), env);
 	};
-};
+*/
 
-// http://www.cs.utexas.edu/ftp/garbage/cs345/schintro-v13/schintro_106.html
-
-var
-define_non_prim_standard_procedures_2 =
-{ |env|
-	// TODO: assq, assv, assoc possible to DRY
-	// TODO: memq, memv, member possible to DRY
-	var standard_procedure_defs =
+	var standard_procedure_defs_cached =
 	[
 		[ 'define', 'assq', [ 'lambda', [ 'obj', 'alist' ], [ 'cond', [ [ 'null?', 'alist' ], false ], [ [ 'eq?', 'obj', [ 'caar', 'alist' ] ], [ 'car', 'alist' ] ], [ 'else', [ 'assq', 'obj', [ 'cdr', 'alist' ] ] ] ] ] ],
 		[ 'define', 'assv', [ 'lambda', [ 'obj', 'alist' ], [ 'cond', [ [ 'null?', 'alist' ], false ], [ [ 'eqv?', 'obj', [ 'caar', 'alist' ] ], [ 'car', 'alist' ] ], [ 'else', [ 'assv', 'obj', [ 'cdr', 'alist' ] ] ] ] ] ],
@@ -1029,11 +1026,10 @@ define_non_prim_standard_procedures_2 =
 		[ 'define', 'cdadr', [ 'lambda', [ 'list' ], [ 'cdr', [ 'car', [ 'cdr', 'list' ] ] ] ] ],
 		[ 'define', 'cddar', [ 'lambda', [ 'list' ], [ 'cdr', [ 'cdr', [ 'car', 'list' ] ] ] ] ],
 		[ 'define', 'cdddr', [ 'lambda', [ 'list' ], [ 'cdr', [ 'cdr', [ 'cdr', 'list' ] ] ] ] ],
-	]
-;
+	];
 
-	standard_procedure_defs.do { |standard_procedure_def|
-		eval.value(standard_procedure_def, env);
+	standard_procedure_defs_cached.do { |changed_standard_procedure_def|
+		eval.value(changed_standard_procedure_def, env);
 	};
 };
 
@@ -1325,7 +1321,22 @@ atom =
 	var rg_float = "(-?(?:0|[1-9]\\d*)(?:\\.\\d+(?i:e[+-]?\\d+)|\\.\\d+|(?i:e[+-]?\\d+)))";
 	var rg_integer = "-?0|-?[1-9]\\d*";
 	// var rg_symbol = "[0-9a-zA-Z_!|@=*/+-<>:;,.?&\\\\'']+";
+
+/*
+
+from https://www.scheme.com/tspl2/intro.html#g1478
+
+Keywords, variables, and symbols are collectively called identifiers. Identifiers may be formed from the following set of characters:
+
+the lowercase letters a through z,
+the uppercase letters A through Z,
+the digits 0 through 9, and
+the characters ? ! . + - * / < = > : $ % ^ & _ ~.
+
+*/
+
 	var rg_symbol = "[a-zA-Z+-.*/<=>!?:\$%_&~\^][0-9a-zA-Z+-./<=>*!?:\$%_&~\^]*";
+	// var rg_symbol = "[a-zA-Z?!.+-*/<=>:\$%\^&_~][a-zA-Z0-9?!.+-*/<=>:\$%\^&_~]*";
 	var rg_char = "#\\\\[0-9a-zA-Z]"; // TODO: not enough, will include #\mutliple_chars
 	var rg_char_space = "#\\\\space";
 	var rg_char_newline = "#\\\\newline";

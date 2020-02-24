@@ -1,18 +1,17 @@
--- an ad-hoc, informally-specified, bug-ridden, slow implementation of half of Common Lisp.
-
 --[[
-]]
-
---[[
+an ad-hoc, informally-specified, bug-ridden, slow implementation of half of Common Lisp.
 
 inspiration:
 https://norvig.com/lispy.html
 scheme r4rs @ https://people.csail.mit.edu/jaffer/r4rs_toc.html
+dybvig's the scheme programming language: https://www.scheme.com/tspl2
+
 TODO r4rs defines 146 essential procedures excluding additional car/cdr permutations
 
-a few differences to r4rs:
+differences to r4rs:
+no TCO. yet.
 no support for macros (macros are not required in r4rs)
-no TCO yet
+no call-cc
 symbol case is significant
 strings are immutable
 quasiquote does not support nesting
@@ -28,10 +27,11 @@ local run_rep_tests3
 local ss_test
 local ss_as_string_test
 local read_test
+local run_applicable_r4rs_examples_as_tests
 
 -- repl
 
-local repl
+local run_repl
 local rep
 
 -- standard environment
@@ -131,6 +131,7 @@ run_tests = function()
   ss_test()
   ss_as_string_test()
   read_test()
+  run_applicable_r4rs_examples_as_tests()
 end
 
 -- TODO: assertions
@@ -425,11 +426,1424 @@ read_test = function()
 
 end
 
+run_applicable_r4rs_examples_as_tests = function()
+  local test = function(str)
+    return read_eval(str, _NS_ENV)
+  end
+
+--[[
+  1. Overview of Scheme
+  1.3.4. Evaluation examples
+]]
+  assert_equal(40, test("(* 5 8)"))
+
+--[[
+  2.2 Whitespace and comments
+]]
+
+--  assert_no_error_thrown(function()
+--    test([[
+--;;; The FACT procedure computes the factorial
+--;;; of a non-negative integer.
+--(define fact
+--  (lambda (n)
+--    (if (= n 0)
+--        1 ; Base case: return 1
+--        (* n (fact (- n 1))))))
+--    ]])
+--  end)
+
+--[[
+  3.4 Disjointness of types
+
+  No object satisfies more than one of the following predicates:
+
+    boolean?
+    symbol?
+    char?
+    vector?
+    pair?
+    number?
+    string?
+    procedure?
+
+  These predicates define the types boolean, pair, symbol,
+  number, char (or character), string, vector, and procedure.
+]]
+  assert_equal(true, test("(boolean? #t)"))
+  assert_equal(false, test("(symbol? #t)"))
+  assert_equal(false, test("(char? #t)"))
+  assert_equal(false, test("(vector? #t)"))
+  assert_equal(false, test("(pair? #t)"))
+  assert_equal(false, test("(number? #t)"))
+  assert_equal(false, test("(string? #t)"))
+  assert_equal(false, test("(procedure? #t)"))
+
+  assert_equal(false, test("(boolean? 'a-symbol)"))
+  assert_equal(true, test("(symbol? 'a-symbol)"))
+  assert_equal(false, test("(char? 'a-symbol)"))
+  assert_equal(false, test("(vector? 'a-symbol)"))
+  assert_equal(false, test("(pair? 'a-symbol)"))
+  assert_equal(false, test("(number? 'a-symbol)"))
+  assert_equal(false, test("(string? 'a-symbol)"))
+  assert_equal(false, test("(procedure? 'a-symbol)"))
+
+  assert_equal(false, test("(boolean? #\\a)"))
+  assert_equal(false, test("(symbol? #\\a)"))
+  assert_equal(true, test("(char? #\\a)"))
+  assert_equal(false, test("(vector? #\\a)"))
+  assert_equal(false, test("(pair? #\\a)"))
+  assert_equal(false, test("(number? #\\a)"))
+  assert_equal(false, test("(string? #\\a)"))
+  assert_equal(false, test("(procedure? #\\a)"))
+
+  assert_equal(false, test("(boolean? (vector 1 3 6))"))
+  assert_equal(false, test("(symbol? (vector 1 3 6))"))
+  assert_equal(false, test("(char? (vector 1 3 6))"))
+  assert_equal(true, test("(vector? (vector 1 3 6))"))
+  assert_equal(false, test("(pair? (vector 1 3 6))"))
+  assert_equal(false, test("(number? (vector 1 3 6))"))
+  assert_equal(false, test("(string? (vector 1 3 6))"))
+  assert_equal(false, test("(procedure? (vector 1 3 6))"))
+
+  --assert_equal(false, test("(boolean? (cons 1 2))"))
+  --assert_equal(false, test("(symbol? (cons 1 2))"))
+  --assert_equal(false, test("(char? (cons 1 2))"))
+  --assert_equal(false, test("(vector? (cons 1 2))"))
+  --assert_equal(true, test("(pair? (cons 1 2))"))
+  --assert_equal(false, test("(number? (cons 1 2))"))
+  --assert_equal(false, test("(string? (cons 1 2))"))
+  --assert_equal(false, test("(procedure? (cons 1 2))"))
+
+  assert_equal(false, test("(boolean? 79)"))
+  assert_equal(false, test("(symbol? 79)"))
+  assert_equal(false, test("(char? 79)"))
+  assert_equal(false, test("(vector? 79)"))
+  assert_equal(false, test("(pair? 79)"))
+  assert_equal(true, test("(number? 79)"))
+  assert_equal(false, test("(string? 79)"))
+  assert_equal(false, test("(procedure? 79)"))
+
+  assert_equal(false, test("(boolean? \"a string\")"))
+  assert_equal(false, test("(symbol? \"a string\")"))
+  assert_equal(false, test("(char? \"a string\")"))
+  assert_equal(false, test("(vector? \"a string\")"))
+  assert_equal(false, test("(pair? \"a string\")"))
+  assert_equal(false, test("(number? \"a string\")"))
+  assert_equal(true, test("(string? \"a string\")"))
+  assert_equal(false, test("(procedure? \"a string\")"))
+
+  assert_equal(false, test("(boolean? (lambda (x) (* x x)))"))
+  assert_equal(false, test("(symbol? (lambda (x) (* x x)))"))
+  assert_equal(false, test("(char? (lambda (x) (* x x)))"))
+  assert_equal(false, test("(vector? (lambda (x) (* x x)))"))
+  assert_equal(false, test("(pair? (lambda (x) (* x x)))"))
+  assert_equal(false, test("(number? (lambda (x) (* x x)))"))
+  assert_equal(false, test("(string? (lambda (x) (* x x)))"))
+  assert_equal(true, test("(procedure? (lambda (x) (* x x)))"))
+
+  --[[
+  4.1.1 Variable references
+
+  An expression consisting of a variable (section 3.1) is a
+  variable reference. The value of the variable reference is
+  the value stored in the location to which the variable is
+  bound. It is an error to reference an unbound variable.
+  ]]
+
+  assert_equal(nil, test("(define x 28)"))
+  assert_equal(28, test("x"))
+
+  --[[
+  4.1.2 Literal expressions
+
+  (quote <datum>) evaluates to <datum>. <Datum> may be
+  any external representation of a Scheme object (see sec-
+  tion 3.3). This notation is used to include literal constants
+  in Scheme code.
+  ]]
+
+  assert_equal(sym("a"), test("(quote a)"))
+  assert_equal({sym("vector"), sym("a"), sym("b"), sym("c")}, test("(quote (vector a b c))")) --TODO: (quote #(a b c)) // ==>  #(a b c)
+  assert_equal({sym("+"), 1, 2}, test("(quote (+ 1 2))"))
+
+  --[[
+  (quote <datum>) may be abbreviated as ’<datum>. The
+  two notations are equivalent in all respects.
+  ]]
+
+  assert_equal(sym("a"), test("'a"))
+  assert_equal({sym("vector"), sym("a"), sym("b"), sym("c")}, test("'(vector a b c)")) --TODO: '#(a b c) // ==>  #(a b c)
+  assert_equal({}, test("'()"))
+  assert_equal({sym("+"), 1, 2}, test("'(+ 1 2)"))
+  assert_equal({sym("quote"), sym("a")}, test("'(quote a)"))
+  assert_equal({sym("quote"), sym("a")}, test("''a"))
+
+  --[[
+  Numerical constants, string constants, character constants,
+  and boolean constants evaluate “to themselves”; they need
+  not be quoted.
+  ]]
+
+  assert_equal(str("abc"), test("'\"abc\""))
+  assert_equal(str("abc"), test("\"abc\""))
+  assert_equal(145932, test("'145932"))
+  assert_equal(145932, test("145932"))
+  assert_equal(true, test("'#t"))
+  assert_equal(true, test("#t"))
+
+  --[[
+  4.1.3 Procedure calls
+
+  A procedure call is written by simply enclosing in parentheses expressions for the procedure to be called and the arguments to be passed to it. The operator and operand expressions are evaluated (in an unspecified order) and the resulting procedure is passed the resulting arguments.
+  ]]
+
+  assert_equal(7, test("(+ 3 4)"))
+  assert_equal(12, test("((if #f + *) 3 4)"))
+
+  --[[
+  4.1.4 Lambda expressions
+  ]]
+
+  assert_equal("function", type(test("(lambda (x) (+ x x))"))) -- (lambda (x) (+ x x)) //  ==>  a procedure
+  assert_equal(8, test("((lambda (x) (+ x x)) 4)"))
+  test(
+[[
+  (define reverse-subtract
+    (lambda (x y) (- y x)))
+]]
+  )
+  assert_equal(3, test("(reverse-subtract 7 10)"))
+
+  test([[
+  (define add4
+    (let ((x 4))
+      (lambda (y) (+ x y))))
+  ]])
+  assert_equal(10, test("(add4 6)"))
+
+  -- TODO assert_equal({3, 4, 5, 6}, test("((lambda x x) 3 4 5 6)"))
+
+  --TODO
+  --assert_equal({5, 6}, test([[
+  --((lambda (x y . z) x)
+  --  3 4 5 6)
+  --]]))
+
+  --[[
+  4.1.5 Conditionals
+  ]]
+
+  assert_equal(sym("yes"), test("(if (> 3 2) 'yes 'no)"))
+  assert_equal(sym("no"), test("(if (> 2 3) 'yes 'no)"))
+  assert_equal(1, test([[
+  (if (> 3 2)
+      (- 3 2)
+      (+ 3 2))
+  ]]))
+
+  --[[
+  4.1.6 Assignments
+  ]]
+
+  test("(define x 2)")
+  assert_equal(3, test("(+ x 1)"))
+  assert_equal(nil, test("(set! x 4)")) -- (set! x 4) // ==>  unspecified
+  assert_equal(5, test("(+ x 1)"))
+
+
+  --[[
+  4.2.1 Conditionals
+
+  essential syntax: cond <clause1> <clause2> ...
+  ]]
+
+  assert_equal(sym("greater"), test([[
+    (cond ((> 3 2) 'greater)
+          ((< 3 2) 'less))
+  ]]))
+
+  assert_equal(sym("equal"), test([[
+    (cond ((> 3 3) 'greater)
+          ((< 3 3) 'less)
+          (else 'equal))
+  ]]))
+
+  -- TODO: => undefined
+  --assert_equal(2, test([[
+  --  (cond ((assv 'b '((a 1) (b 2))) => cadr)
+  --        (else #f))
+  --]]))
+
+  --[[
+  essential syntax: case <key> <clause1> <clause2> ...
+  ]]
+
+  assert_equal(sym("composite"), test([[
+    (case (* 2 3)
+      ((2 3 5 7) 'prime)
+      ((1 4 6 8 9) 'composite))
+  ]]))
+
+  assert_equal(nil, test([[
+    (case (car '(c d))
+      ((a) 'a)
+      ((b) 'b))
+  ]]))
+
+  assert_equal(sym("consonant"), test([[
+    (case (car '(c d))
+      ((a e i o u) 'vowel)
+      ((w y) 'semivowel)
+      (else 'consonant))
+  ]]))
+
+  --[[
+  essential syntax: and <test1> ...
+  ]]
+
+  assert_equal(true, test("(and (= 2 2) (> 2 1))"))
+  assert_equal(false, test("(and (= 2 2) (< 2 1))"))
+  assert_equal({sym("f"), sym("g")}, test("(and 1 2 'c '(f g))"))
+  assert_equal(true, test("(and)"))
+
+  --[[
+  essential syntax: or <test1> ...
+  ]]
+
+  assert_equal(true, test("(or (= 2 2) (> 2 1))"))
+  assert_equal(true, test("(or (= 2 2) (< 2 1))"))
+  assert_equal(false, test("(or #f #f #f)"))
+  assert_equal({sym("b"), sym("c")}, test([[
+    (or (memq 'b '(a b c))
+        (/ 3 0))
+  ]]))
+
+  --[[
+  4.2.2 Binding constructs
+  ]]
+
+  assert_equal(6, test([[
+    (let ((x 2) (y 3))
+      (* x y))
+  ]]))
+
+  assert_equal(35, test([[
+    (let ((x 2) (y 3))
+      (let ((x 7)
+            (z (+ x y)))
+        (* z x)))
+  ]]))
+
+  assert_equal(70, test([[
+    (let ((x 2) (y 3))
+      (let* ((x 7)
+             (z (+ x y)))
+        (* z x)))
+  ]]))
+
+  --assert_equal(true, test([[
+  --  (letrec ((even?
+  --            (lambda (n)
+  --              (if (zero? n)
+  --                  #t
+  --                  (odd? (- n 1)))))
+  --           (odd?
+  --            (lambda (n)
+  --              (if (zero? n)
+  --                  #f
+  --                  (even? (- n 1))))))
+  --    (even? 88))
+  --]]))
+
+  --[[
+  4.2.3 Sequencing
+  ]]
+  test("(define x 0)")
+
+  assert_equal(6, test([[
+    (begin (set! x 5)
+           (+ x 1))
+  ]]))
+
+  -- TODO: strings with whitespace, asserting text output
+  --assert_equal(6, test([[
+  --  (begin (display "4 plus 1 equals ")
+  --         (display (+ 4 1))) // ==>  unspecified and prints  4 plus 1 equals 5
+  --]]))
+
+  --[[
+  4.2.4 Iteration
+  ]]
+
+  -- TODO: do
+  --local vector = test([[
+  --  (do ((vec (make-vector 5))
+  --       (i 0 (+ i 1)))
+  --      ((= i 5) vec)
+  --    (vector-set! vec i i))
+  --]])
+  --assert_equal({0, 1, 2, 3, 4}, vector)
+  --assert_equal(vector_mt, getmetatable(vector))
+
+  -- TODO: do
+  --assert_equal(25, test([[
+  --  (let ((x '(1 3 5 7 9)))
+  --    (do ((x x (cdr x))
+  --         (sum 0 (+ sum (car x))))
+  --        ((null? x) sum)))
+  --]]))
+
+  -- TODO: named let
+  --assert_equal({{6, 1, 3}, {-5, -2}}, test([[
+  --  (let loop ((numbers '(3 -2 1 6 -5))
+  --             (nonneg '())
+  --             (neg '()))
+  --    (cond ((null? numbers) (list nonneg neg))
+  --          ((>= (car numbers) 0)
+  --           (loop (cdr numbers)
+  --                 (cons (car numbers) nonneg)
+  --                 neg))
+  --          ((< (car numbers) 0)
+  --           (loop (cdr numbers)
+  --                 nonneg
+  --                 (cons (car numbers) neg)))))
+  --]]))
+
+  --[[
+  4.2.6 Quasiquotation
+  ]]
+
+  assert_equal({sym("list"), 3, 4}, test("`(list ,(+ 1 2) 4)"))
+  assert_equal(
+    {sym("list"), sym("a"), {sym("quote"), sym("a")}},
+    test("(let ((name 'a)) `(list ,name ',name))")
+  )
+
+  -- TODO
+  --assert_equal(
+  --  {sym("a"), 3, 4, 5, 6, sym("b")},
+  --  test("`(a ,(+ 1 2) ,@(map abs '(4 -5 6)) b)")
+  --)
+
+  -- TODO: dotted pairs
+  -- `((foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons)))
+  -- ==>  ((foo 7) . cons)
+
+  -- TODO: # vs vector
+  -- TODO: quotes as (vector
+  -- `#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8)
+  -- ==>  #(10 5 2 4 3 8)
+  -- TODO
+  --assert_equal(
+  --  {sym("vector"), 10, 5, 2, 4, 3, 8},
+  --  test("`(vector 10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8)")
+  --)
+
+  -- TODO
+  -- `(a `(b ,(+ 1 2) ,(foo ,(+ 1 3) d) e) f)
+  -- ==>  (a `(b ,(+ 1 2) ,(foo 4 d) e) f)
+
+  -- TODO
+  -- (let ((name1 'x)
+  --       (name2 'y))
+  --   `(a `(b ,,name1 ,',name2 d) e))
+  -- ==>  (a `(b ,x ,'y d) e)
+
+  -- TODO
+  -- (quasiquote (list (unquote (+ 1 2)) 4))
+  -- ==>  (list 3 4)
+
+  -- TODO
+  -- '(quasiquote (list (unquote (+ 1 2)) 4))
+  -- ==>  `(list ,(+ 1 2) 4) // TODO
+  --     i.e., (quasiquote (list (unquote (+ 1 2)) 4))
+
+  --[[
+  5.2.1 Top level definitions
+  ]]
+
+  test([[
+    (define add3
+      (lambda (x) (+ x 3)))
+  ]])
+  assert_equal(6, test("(add3 3)"))
+
+  test("(define first car)")
+  assert_equal(1, test("(first '(1 2))"))
+
+  --[[
+  5.2.2 Internal definitions
+  ]]
+
+  -- TODO: letrec
+  --test([[
+  --  (let ((x 5))
+  --    (letrec ((foo (lambda (y) (bar x y)))
+  --             (bar (lambda (a b) (+ (* a b) a))))
+  --      (foo (+ x 3))))
+  --]])
+
+  --[[
+  6.1 Booleans
+  ]]
+
+  assert_equal(true, test("#t"))
+  assert_equal(false, test("#f"))
+  assert_equal(false, test("'#f"))
+
+  assert_equal(false, test("(not #t)"))
+  assert_equal(false, test("(not 3)"))
+  assert_equal(false, test("(not (list 3))"))
+  assert_equal(true, test("(not #f)"))
+  assert_equal(false, test("(not '())"))
+  assert_equal(false, test("(not (list))"))
+  assert_equal(false, test("(not (quote nil))"))
+
+  assert_equal(true, test("(boolean? #f)"))
+  assert_equal(false, test("(boolean? 0)"))
+  assert_equal(false, test("(boolean? '())"))
+
+  --[[
+  6.2 Equivalence predicates
+
+  essential procedure: eqv? obj1 obj2
+  ]]
+
+
+  assert_equal(true, test("(eqv? 'a 'a)"))
+  assert_equal(false, test("(eqv? 'a 'b)"))
+  assert_equal(true, test("(eqv? 2 2)"))
+  assert_equal(true, test("(eqv? '() '())"))
+  assert_equal(true, test("(eqv? 100000000 100000000)"))
+  -- TODO: dotted pair assert_equal(false, test("(eqv? (cons 1 2) (cons 1 2))"))
+  assert_equal(false, test([[
+    (eqv? (lambda () 1)
+          (lambda () 2))
+  ]]))
+  assert_equal(false, test("(eqv? #f 'nil)"))
+  assert_equal(true, test([[
+    (let ((p (lambda (x) x)))
+      (eqv? p p))
+  ]]))
+  assert_no_error_thrown(function()
+    test("(eqv? \"\" \"\")")
+  end) -- ==>  unspecified
+  -- TODO vector # assert_no_error_thrown(function() test("(eqv? '#() '#())") end) -- ==>  unspecified
+  assert_no_error_thrown(function()
+    test([[
+      (eqv? (lambda (x) x)
+            (lambda (x) x)) 
+    ]])
+  end) -- ==>  unspecified
+
+  assert_no_error_thrown(function()
+    test([[
+      (eqv? (lambda (x) x)
+            (lambda (y) y))
+    ]])
+  end) -- ==>  unspecified
+
+  assert_no_error_thrown(function()
+    test([[
+      (define gen-counter
+        (lambda ()
+          (let ((n 0))
+            (lambda () (set! n (+ n 1)) n))))
+    ]])
+  end)
+
+  assert_equal(true, test([[
+    (let ((g (gen-counter)))
+      (eqv? g g))
+  ]]))
+
+  assert_equal(false, test([[
+    (eqv? (gen-counter) (gen-counter))
+  ]]))
+
+  assert_no_error_thrown(function()
+    test([[
+      (define gen-loser
+        (lambda ()
+          (let ((n 0))
+            (lambda () (set! n (+ n 1)) 27))))
+    ]])
+  end)
+
+  assert_equal(true, test([[
+    (let ((g (gen-loser)))
+      (eqv? g g))
+  ]]))
+
+  assert_no_error_thrown(function()
+    test([[
+      (eqv? (gen-loser) (gen-loser))
+    ]])
+  end) -- ==>  unspecified
+
+  --[[
+    (letrec ((f (lambda () (if (eqv? f g) 'both 'f))) // TODO
+             (g (lambda () (if (eqv? f g) 'both 'g)))
+      (eqv? f g))
+
+    )
+    // ==>  unspecified
+
+    (letrec ((f (lambda () (if (eqv? f g) 'f 'both))) // TODO
+             (g (lambda () (if (eqv? f g) 'g 'both)))
+      (eqv? f g))
+
+    )
+    // ==>  #f
+  ]]
+
+  assert_no_error_thrown(function()
+    test([[
+      (eqv? '(a) '(a))
+    ]])
+  end) -- ==>  unspecified
+
+  assert_no_error_thrown(function()
+    test([[
+      (eqv? "a" "a")
+    ]])
+  end) -- ==>  unspecified
+
+  assert_no_error_thrown(function()
+    test([[
+      (eqv? '(b) (cdr '(a b)))
+    ]])
+  end) -- ==>  unspecified
+
+  assert_equal(true, test([[
+    (let ((x '(a)))
+      (eqv? x x))
+  ]]))
+
+  --[[
+  r4rs essential procedure: eq? obj1 obj2
+  ]]
+
+  assert_equal(true, test([[
+    (eq? 'a 'a)
+  ]]))
+
+  assert_no_error_thrown(function()
+    test([[
+      (eq? '(a) '(a))
+    ]])
+  end) -- ==>  unspecified
+
+  assert_equal(false, test([[
+    (eq? (list 'a) (list 'a))
+  ]]))
+
+  assert_no_error_thrown(function()
+    test([[
+      (eq? "a" "a")
+    ]])
+  end) -- ==>  unspecified
+
+  assert_no_error_thrown(function()
+    test([[
+      (eq? "" "")
+    ]])
+  end) -- ==>  unspecified
+
+  assert_equal(true, test([[
+    (eq? '() '())
+  ]]))
+
+  assert_no_error_thrown(function()
+    test([[
+      (eq? 2 2)
+    ]])
+  end) -- ==>  unspecified
+
+  assert_no_error_thrown(function()
+    test([[
+      (eq? #\A #\A)
+    ]])
+  end) -- ==>  unspecified
+
+  assert_equal(true, test([[
+    (eq? car car)
+  ]]))
+
+  assert_no_error_thrown(function()
+    test([[
+      (let ((n (+ 2 3)))
+        (eq? n n))
+    ]])
+  end) -- ==>  unspecified
+
+  assert_equal(true, test([[
+    (let ((x '(a)))
+      (eq? x x))
+  ]]))
+
+  -- TODO: vector #
+  --assert_equal(true, test([[
+  --  (let ((x '#()))
+  --    (eq? x x))
+  --]]))
+
+  assert_equal(true, test([[
+    (let ((p (lambda (x) x)))
+      (eq? p p))
+  ]]))
+
+  --[[
+  essential procedure: equal? obj1 obj2
+  ]]
+
+  assert_equal(true, test([[
+    (equal? 'a 'a)
+  ]]))
+
+  -- TODO: bug
+  --assert_equal(true, test([[
+  --  (equal? '(a) '(a))
+  --]]))
+
+  -- TODO: bug
+  --assert_equal(true, test([[
+  --  (equal? '(a (b) c)
+  --          '(a (b) c))
+  --]]))
+
+  assert_equal(true, test([[
+    (equal? "abc" "abc")
+  ]]))
+
+  assert_equal(true, test([[
+    (equal? 2 2)
+  ]]))
+
+  -- TODO: make-vector
+  --assert_equal(true, test([[
+  --  (equal? (make-vector 5 'a)
+  --          (make-vector 5 'a))
+  --]]))
+
+  assert_no_error_thrown(function()
+    test([[
+      (equal? (lambda (x) x)
+              (lambda (y) y))
+    ]])
+  end) -- ==>  unspecified
+
+  --[[
+  6.3 Pairs and lists
+  ]]
+
+  assert_no_error_thrown(function()
+    test([[
+      (define x (list 'a 'b 'c))
+    ]])
+  end)
+
+  assert_no_error_thrown(function()
+    test([[
+      (define y x)
+    ]])
+  end)
+
+  assert_equal({sym("a"), sym("b"), sym("c")}, test("y"))
+  assert_equal(true, test("(list? y)"))
+
+  -- TODO: set-cdr!
+  --assert_no_error_thrown(function()
+  --  test([[
+  --    (set-cdr! x 4)
+  --  ]])
+  --end) -- ==>  unspecified
+
+  -- TODO dotted pair x // ==>  (a . 4)
+  
+  --assert_equal(true, test("(eqv? x y)"))
+
+  -- TODO dotted pair y // ==>  (a . 4)
+
+  --assert_equal(false, test("(list? y)"))
+
+  -- TODO: set-cdr!
+  --assert_no_error_thrown(function()
+  --  test([[
+  --    (set-cdr! x x)
+  --  ]])
+  --end) -- ==>  unspecified
+
+  --assert_equal(false, test("(list? x)"))
+
+  --[[
+  essential procedure: pair? obj
+  ]]
+
+  -- TODO dotted pair assert_equal(true, test("(pair? '(a . b))"))
+  assert_equal(true, test("(pair? '(a b c))"))
+  assert_equal(false, test("(pair? '())"))
+  -- TODO: vector # assert_equal(false, test("(pair? '#(a b))"))
+
+  --[[
+  essential procedure: cons obj1 obj2
+  ]]
+
+  assert_equal({sym("a")}, test("(cons 'a '())"))
+  assert_equal({{sym("a")}, sym("b"), sym("c"), sym("d")}, test("(cons '(a) '(b c d))"))
+  assert_equal({str("a"), sym("b"), sym("c")}, test("(cons \"a\" '(b c))"))
+  --(cons 'a 3) // ==>  (a . 3) TODO: dotted pair
+  --(cons '(a b) 'c) // ==>  ((a b) . c) TODO: dotted pair
+
+  --[[
+  essential procedure: car pair
+  ]]
+
+  assert_equal(sym("a"), test("(car '(a b c))"))
+  assert_equal({sym("a")}, test("(car '((a) b c d))"))
+  --(car '(1 . 2))                         ==>  1 TODO: dotted pair
+  --TODO: error
+  --assert_error_thrown(function()
+  --  test("(car '())")
+  --end)
+
+  --[[
+  essential procedure: cdr pair
+  ]]
+  assert_equal({sym("b"), sym("c"), sym("d")}, test("(cdr '((a) b c d))"))
+  -- TODO: dotted pair (cdr '(1 . 2))                         ==>  2
+  -- TODO: error (cdr '())                              ==>  error TODO
+
+  --[[
+  essential procedure: set-car! pair obj
+  ]]
+
+  assert_no_error_thrown(function()
+    test([[
+      (define (f) (list 'not-a-constant-list))
+    ]])
+  end)
+
+  assert_no_error_thrown(function()
+    test([[
+      (define (g) '(constant-list))
+    ]])
+  end)
+
+  -- TODO: set-car!
+  -- assert_no_error_thrown(function()
+  --  test([[
+  --    (set-car! (f) 3)
+  --  ]])
+  --end) -- ==>  unspecified
+
+  -- TODO: set-car!
+  -- assert_error_thrown(function()
+  --  test([[
+  --    (set-car! (g) 3)
+  --  ]])
+  --end)
+
+  --[[
+  essential procedure: caar pair
+  essential procedure: cadr pair
+  ...
+  essential procedure: cdddar pair
+  essential procedure: cddddr pair
+  ]]
+
+  assert_no_error_thrown(function()
+    test([[
+      (define caddr (lambda (x) (car (cdr (cdr x)))))
+    ]])
+  end)
+
+  --[[
+  essential procedure: list? obj
+  ]]
+
+  assert_equal(true, test("(list? '(a b c))"))
+  assert_equal(true, test("(list? '())"))
+  -- TODO: dotted pair assert_equal(false, test("(list? '(a . b))"))
+  
+  -- TODO: set-cdr!
+  --assert_equal(false, test([[
+  --  (let ((x (list 'a)))
+  --    (set-cdr! x x)
+  --    (list? x)) // ==>  #f
+  --]])
+
+  --[[
+  essential procedure: list obj ...
+  ]]
+
+  assert_equal({sym("a"), 7, sym("c")}, test("(list 'a (+ 3 4) 'c)"))
+  assert_equal({}, test("(list)"))
+
+  --[[
+  essential procedure: length list
+  ]]
+
+  assert_equal(3, test("(length '(a b c))"))
+  assert_equal(3, test("(length '(a (b) (c d e)))"))
+  assert_equal(0, test("(length '())"))
+
+  --[[
+  essential procedure: append list ...
+  ]]
+
+  assert_equal({sym("x"), sym("y")}, test("(append '(x) '(y))"))
+  assert_equal({sym("a"), sym("b"), sym("c"), sym("d")}, test("(append '(a) '(b c d))"))
+  assert_equal({sym("a"), {sym("b")}, {sym("c")}}, test("(append '(a (b)) '((c)))"))
+  -- TODO: dotted pair (append '(a b) '(c . d)) // ==>  (a b c . d)
+  --assert_equal(sym("a"), test("(append '() 'a)")) TODO: (append '() 'a) // ==>  a
+
+  --[[
+  essential procedure: reverse list
+  ]]
+
+  assert_equal({sym("c"), sym("b"), sym("a")}, test("(reverse '(a b c))"))
+  assert_equal({{sym("e"), {sym("f")}}, sym("d"), {sym("b"), sym("c")}, sym("a")}, test("(reverse '(a (b c) d (e (f))))"))
+
+  --[[
+  procedure: list-tail list k
+  ]]
+
+  assert_no_error_thrown(function()
+    test([[
+      (define list-tail
+        (lambda (x k)
+          (if (zero? k)
+              x
+              (list-tail (cdr x) (- k 1)))))
+    ]])
+  end)
+
+  --[[
+  essential procedure: list-ref list k
+  ]]
+
+  assert_equal(sym("c"), test("(list-ref '(a b c d) 2)"))
+
+  -- TODO: inexact->exact
+  --assert_equal(sym("c"), test([[
+  --  (list-ref '(a b c d)
+  --            (inexact->exact (round 1.8)))
+  --]]))
+
+  --[[
+  essential procedure: memq obj list
+  essential procedure: memv obj list
+  essential procedure: member obj list
+  ]]
+
+  assert_equal({sym("a"), sym("b"), sym("c")}, test("(memq 'a '(a b c))"))
+  assert_equal({sym("b"), sym("c")}, test("(memq 'b '(a b c))"))
+  assert_equal(false, test("(memq 'a '(b c d))"))
+  assert_equal(false, test("(memq (list 'a) '(b (a) c))"))
+  -- TODO: member
+  --assert_equal({{sym("a")}, sym("c")}, test([[
+  --  (member (list 'a)
+  --          '(b (a) c))
+  --]]))
+  assert_no_error_thrown(function()
+    test([[
+      (memq 101 '(100 101 102))
+      (define list-tail
+        (lambda (x k)
+          (if (zero? k)
+              x
+              (list-tail (cdr x) (- k 1)))))
+    ]])
+  end) -- ==>  unspecified
+  assert_equal({101, 102}, test("(memv 101 '(100 101 102))"))
+
+  --[[
+  essential procedure: assq obj alist
+  essential procedure: assv obj alist
+  essential procedure: assoc obj alist
+  ]]
+
+  assert_no_error_thrown(function()
+    test([[
+      (define e '((a 1) (b 2) (c 3)))
+    ]])
+  end)
+
+  assert_equal({sym("a"), 1}, test("(assq 'a e)"))
+  assert_equal({sym("b"), 2}, test("(assq 'b e)"))
+  assert_equal(false, test("(assq 'd e)"))
+  assert_equal(false, test("(assq (list 'a) '(((a)) ((b)) ((c))))"))
+  -- TODO: assoc assert_equal({{sym("a")}}, test("(assoc (list 'a) '(((a)) ((b)) ((c))))"))
+  --
+  assert_no_error_thrown(function()
+    test([[
+      (assq 5 '((2 3) (5 7) (11 13)))
+    ]])
+  end) -- ==>  unspecified
+
+  assert_equal({5, 7}, test("(assv 5 '((2 3) (5 7) (11 13)))"))
+
+  --[[
+  6.4 Symbols
+
+  essential procedure: symbol? obj
+  ]]
+
+  assert_equal(true, test("(symbol? 'foo)"))
+  assert_equal(true, test("(symbol? (car '(a b)))"))
+  assert_equal(false, test("(symbol? \"bar\")"))
+  assert_equal(true, test("(symbol? 'nil)"))
+  assert_equal(false, test("(symbol? '())"))
+  assert_equal(false, test("(symbol? #f)"))
+
+  --[[
+  essential procedure: symbol->string symbol
+  ]]
+
+  assert_equal(str("flying-fish"), test("(symbol->string 'flying-fish)"))
+  -- TODO: case insensitivity? assert_equal(str("martin"), test("(symbol->string 'Martin)"))
+  assert_equal(str("Malvina"), test([[
+    (symbol->string
+       (string->symbol "Malvina"))
+  ]]))
+
+  --[[
+  essential procedure: string->symbol string
+  ]]
+
+  -- diverges from r4rs: case is significant
+  assert_equal(false, test([[
+    (eq? 'mISSISSIppi 'mississippi)
+  ]]))
+
+  assert_equal(sym("mISSISSIppi"), test([[
+    (string->symbol "mISSISSIppi")
+  ]]))
+
+  -- diverges from r4rs: case is significant
+  assert_equal(true, test([[
+    (eq? 'bitBlt (string->symbol "bitBlt"))
+  ]]))
+
+  assert_equal(true, test([[
+    (eq? 'JollyWog
+         (string->symbol
+           (symbol->string 'JollyWog)))
+  ]]))
+
+  assert_equal(true, test([[
+    (string=? "K. Harper, M.D."
+              (symbol->string
+                (string->symbol "K. Harper, M.D.")))
+  ]]))
+
+  --[[
+  6.5 Numbers
+  ]]
+
+  --TODO
+
+
+  --[[
+  6.6 Characters
+  ]]
+
+  -- #\a ; lower case letter
+  assert_equal(
+    chr("a"),
+    test([[
+      #\a
+    ]])
+  )
+
+  -- #\A ; upper case letter
+  assert_equal(
+    chr("A"),
+    test([[
+      #\A
+    ]])
+  )
+
+  -- #\( ; left parenthesis
+  assert_equal(
+    chr("("),
+    test([[
+      #\(
+    ]])
+  )
+
+  -- #\ ; the space character
+  assert_equal(
+    chr(" "),
+    test([[
+      #\ 
+    ]])
+  )
+
+  -- #\space ; the preferred way to write a space
+  assert_equal(
+    chr(" "),
+    test([[
+      #\space
+    ]])
+  )
+
+  -- #\newline ; the newline character
+  assert_equal(
+    chr("\n"),
+    test([[
+      #\newline
+    ]])
+  )
+
+  --[[
+  essential procedure: char->integer char
+  essential procedure: integer->char n
+  ]]
+
+  assert_equal(true, test("(char<? #\\A #\\B)"))
+  assert_equal(true, test("(char<? #\\a #\\b)"))
+  assert_equal(true, test("(char<? #\\0 #\\9)"))
+
+  assert_equal(true, test("(char-ci=? #\\A #\\a)"))
+
+  --[[
+  (char->integer char) essential procedure
+  (integer->char n) essential procedure
+  ]]
+
+  test("(define a #\\a)")
+  test("(define b #\\b)")
+  test("(define x 97)")
+  test("(define y 98)")
+
+  assert_equal(true, test("(char<=? a b)"))
+  assert_equal(true, test("(<= x y)"))
+
+  assert_equal(true, test([[
+    (<= (char->integer a)
+        (char->integer b))
+  ]]))
+
+  assert_equal(true, test([[
+    (char<=? (integer->char x)
+             (integer->char y))
+  ]]))
+
+  --[[
+  6.7 Strings
+  ]]
+
+  --TODO: quoted characters are not supported yet
+  --assert_equal(
+  --  str("The word \"recursion\" has many meanings."),
+  --  test([[
+  --    "The word \"recursion\" has many meanings."
+  --  ]])
+  --)
+
+  --[[
+  essential procedure: string-set! string k char
+  ]]
+
+  --[[
+  TODO: strings are immutable
+
+    (define (f) (make-string 3 #\*))
+    (define (g) "***")
+    (string-set! (f) 0 #\?)                ==>  unspecified
+    (string-set! (g) 0 #\?)                ==>  error
+    (string-set! (symbol->string 'immutable)
+                 0
+                 #\?)                      ==>  error
+  ]]
+
+  --[[
+  6.8 Vectors
+  ]]
+
+  --TODO: vector #
+  --local vector = test([[
+  --  '#(0 (2 2 2 2) "Anna")
+  --]])
+  ---- ==> #(0 (2 2 2 2) "Anna")
+
+  local vector = test([[
+    '(vector 0 (2 2 2 2) "Anna")
+  ]])
+
+  assert_equal(
+    {sym("vector"), 0, {2, 2, 2, 2}, str("Anna")},
+    vector
+  )
+
+  -- TODO: metatable check?
+  --assert_equal(
+  --  vector_mt,
+  --  getmetatable(vector)
+  --)
+
+  --[[
+  essential procedure: vector-ref vector k
+  ]]
+
+  --[[ TODO: vector #
+    (vector-ref '#(1 1 2 3 5 8 13 21)
+                5)
+    ==>  8
+    (vector-ref '#(1 1 2 3 5 8 13 21)
+                (inexact->exact
+                  (round (* 2 (acos -1)))))
+    ==> 13
+  ]]
+
+  -- TODO: vector-ref, inexact->exact, acos
+  --assert_equal(
+  --  8,
+  --  test([[
+  --    (vector-ref (vector 1 1 2 3 5 8 13 21)
+  --                5)
+  --  ]])
+  --)
+
+  -- TODO: vector-ref, inexact->exact, acos
+  --assert_equal(
+  --  13,
+  --  test([[
+  --    (vector-ref (vector 1 1 2 3 5 8 13 21)
+  --                (inexact->exact
+  --                  (round (* 2 (acos -1)))))
+  --  ]])
+  --)
+
+  --[[
+  essential procedure: vector-set! vector k obj
+  ]]
+
+  -- TODO: vector-set!
+  --assert_equal(
+  --  {sym("vector"), 0, {str("Sue"), str("Sue")}, str("Anna")},
+  --  test([[
+  --    (let ((vec (vector 0 '(2 2 2 2) "Anna")))
+  --      (vector-set! vec 1 '("Sue" "Sue"))
+  --      vec)
+  --  ]])
+  --)
+  -- ==>  #(0 ("Sue" "Sue") "Anna") TODO: vector #
+
+  -- TODO vector #, constant vector
+  --assert_error_thrown(function()
+  --  test([[
+  --    (vector-set! '#(0 1 2) 1 "doe")
+  --  ]])
+  --end) -- ==>  error  ; constant vector
+
+  --[[
+  essential procedure: vector->list vector
+  essential procedure: list->vector list
+  ]]
+
+  --assert_equal(
+  --  {sym("dah"), sym("dah"), sym("didah")},
+  --  test([[
+  --    (vector->list '#(dah dah didah))
+  --  ]])
+  --)
+
+  -- TODO: vector #
+  --assert_equal(
+  --  {sym("vector"), sym("dididit"), sym("dah")},
+  --  test([[
+  --    (list->vector '(dididit dah))
+  --  ]])
+  --) -- ==>  #(dididit dah)
+
+  --[[
+  6.9 Control features
+
+  essential procedure: procedure? obj
+  ]]
+
+  assert_equal(true, test("(procedure? car)"))
+  assert_equal(false, test("(procedure? 'car)"))
+  assert_equal(true, test("(procedure? (lambda (x) (* x x)))"))
+  assert_equal(false, test("(procedure? '(lambda (x) (* x x)))"))
+  assert_equal(false, test("(procedure? '(lambda (x) (* x x)))"))
+  -- TODO: call-cc assert_equal(true, test("(call-with-current-continuation procedure?)"))
+
+  --[[
+  essential procedure: apply proc args
+  procedure: apply proc arg1 ... args
+  ]]
+
+  -- TODO: apply
+  --assert_equal(7, test("(apply + (list 3 4))"))
+  assert_no_error_thrown(function()
+    test([[
+      (define compose
+        (lambda (f g)
+          (lambda args
+            (f (apply g args)))))
+    ]])
+  end)
+  --assert_equal(30, test("((compose sqrt *) 12 75)"))
+
+  --[[
+  essential procedure: map proc list1 list2 ...
+  ]]
+
+  -- TODO: map incorrect assert_equal({sym("b"), sym("e"), sym("h")}, test("(map cadr '((a b) (d e) (g h)))"))
+
+  -- TODO: map incorrect
+  --assert_equal(
+  --  {1, 4, 27, 256, 3125},
+  --  test([[
+  --    (map (lambda (n) (expt n n))
+  --         '(1 2 3 4 5))
+  --  ]])
+
+  -- TODO: map incorrect assert_equal({5, 7, 9}, test("(map + '(1 2 3) '(4 5 6))"))
+
+  --[[
+    (let ((count 0))
+      (map (lambda (ignored)
+             (set! count (+ count 1))
+             count)
+           '(a b c))) // ==>  unspecified
+  ]]
+
+  --[[
+  essential procedure: for-each proc list1 list2 ...
+  ]]
+
+  --[[ TODO: for-each, vector-set!
+    (let ((v (make-vector 5)))
+      (for-each (lambda (i)
+                  (vector-set! v i (* i i)))
+                '(0 1 2 3 4))
+      v) -- ==>  #(0 1 4 9 16)
+  ]]
+
+  --[[
+  procedure: (force promise) TODO
+  ]]
+
+  --[[
+    (force (delay (+ 1 2))) ==> 3
+    (let ((p (delay (+ 1 2))))
+      (list (force p) (force p))) ==> (3 3)
+
+    (define a-stream
+      (letrec ((next
+        (lambda (n)
+          (cons n (delay (next (+ n 1)))))))
+        (next 0)))
+    (define head car)
+    (define tail
+      (lambda (stream) (force (cdr stream))))
+
+    (head (tail (tail a-stream))) ==> 2
+  ]]
+
+  --[[
+    (define count 0)
+    (define p
+      (delay (begin (set! count (+ count 1))
+        (if (> count x)
+          count
+          (force p)))))
+    (define x 5)
+    p ==> a promise
+    (force p) ==> 6
+    p ==> a promise, still
+    (begin (set! x 10)
+      (force p)) ==> 6
+  ]]
+
+  --[[
+    TODO
+
+    Here is a possible implementation of delay and force.
+    Promises are implemented here as procedures of no arguments, and force simply calls its argument:
+
+    (define force
+      (lambda (object)
+        (object)))
+
+    We define the expression
+      (delay <expression>)
+
+    to have the same meaning as the procedure call
+      (make-promise (lambda () <expression>)),
+
+    where make-promise is defined as follows:
+
+      (define make-promise
+        (lambda (proc)
+          (let ((result-ready? #f)
+            (result #f))
+              (lambda ()
+                (if result-ready?
+                  result
+                  (let ((x (proc)))
+                    (if result-ready?
+                      result
+                        (begin (set! result-ready? #t)
+                          (set! result x)
+                          result))))))))
+  ]]
+
+  --[[
+    TODO
+
+    (eqv? (delay 1) 1) ==> unspecified
+    (pair? (delay (cons 1 2))) ==> unspecified
+  ]]
+
+  --[[
+    TODO
+  Some implementations may implement “implicit forcing,” where the value of a promise is forced by primitive procedures like cdr and +:
+
+    (+ (delay (* 3 7)) 13) ==> 34
+  ]]
+
+  --[[
+  essential procedure: call-with-current-continuation proc
+
+    (call-with-current-continuation
+      (lambda (exit)
+        (for-each (lambda (x)
+          (if (negative? x)
+            (exit x)))
+          ’(54 0 37 -3 245 19))
+        #t)) ==> -3
+
+    (define list-length
+      (lambda (obj)
+        (call-with-current-continuation
+          (lambda (return)
+            (letrec ((r
+              (lambda (obj)
+              (cond ((null? obj) 0)
+              ((pair? obj)
+              (+ (r (cdr obj)) 1))
+              (else (return #f))))))
+            (r obj))))))
+
+    (list-length ’(1 2 3 4)) ==> 4
+
+    (list-length ’(a b . c)) ==> #f
+  ]]
+
+end
+
 --[[
 repl
 ]]
 
-repl =
+run_repl =
 function()
   local get_num_occurences_of = function(str, char)
     local count = 0
@@ -474,8 +1888,7 @@ end
 
 rep =
 function(str, env)
-  env = env or _NS_ENV or _G
-  local val = eval(read(str), env)
+  local val = read_eval(str, env or _NS_ENV or _G)
   if val ~= nil then
     print(scheme_str(val))
     return scheme_str(val)
@@ -669,7 +2082,7 @@ function()
     end,
     -- r4rs essential procedure: (char->integer char)
     ['char->integer'] = function(char)
-      return tonumber(get_chr(char))
+      return string.byte(get_chr(char), 1)
     end,
     -- r4rs essential procedure: (char-upcase char)
     ['char-upcase'] = function(char)
@@ -721,7 +2134,7 @@ function()
     end,
     -- r4rs essential procedure: (eq? obj1 obj2)
     ['eq?'] = function(obj1, obj2)
-      return obj1 == obj2
+      return obj1 == obj2 or (is_empty_list(obj1) and is_empty_list(obj2))
     end,
     -- r4rs essential procedure: (eqv? obj1 obj2)
     ['eqv?'] = function(obj1, obj2)
@@ -820,7 +2233,7 @@ function()
     end,
     -- r4rs essential procedure: (integer->char n)
     ['integer->char'] = function(n)
-      return string.char(n)
+      return chr(string.char(n))
     end,
     -- r4rs essential procedure: (lcm n1 ...) TODO
     ['lcm'] = function(...)
@@ -837,7 +2250,7 @@ function()
     end,
     -- r4rs essential procedure: (list? obj)
     ['list?'] = function(obj)
-      return is_list(objs)
+      return is_list(obj)
     end,
     -- r4rs essential procedure: (list-ref list k)
     ['list-ref'] = function(list, k)
@@ -875,13 +2288,31 @@ function()
 
       local result = {}
 
-      for i,v in ipairs(lists) do
-        local args = {}
-        for _,v in ipairs(lists) do
-          args[i] = v
+      --[[
+      list = lists[1]
+      for i,value in ipairs(list) do
+        result[i] = invoke_function(proc, {value})
+      end
+      ]]
+      local args = {}
+      local list_lengths = {}
+      for i, list in ipairs(lists) do
+        local list = lists[i]
+        list_lengths[i] = #list
+        for j, value in ipairs(list) do
+          if args[j] == nil then
+            args[j] = {}
+          end
+          table.insert(args[j], value)
         end
+      end
+
+      print_table(args, "args:")
+
+      for i=1,list_lengths[1] do -- TODO: lists assumed to be of same length, check this
         result[i] = invoke_function(proc, args)
       end
+
       return result
     end,
     -- r4rs essential procedure: (max x1 x2 ...) TODO: varargs
@@ -1003,7 +2434,7 @@ function()
     end,
     -- r4rs essential procedure: (set-cdr! pair obj) TODO
     ['set-cdr!'] = function(pair, obj)
-      error("TODO: set-car!")
+      error("TODO: set-cdr!")
     end,
     ['sqrt'] = function(z)
       -- r4rs procedure: sqrt z
@@ -1069,7 +2500,7 @@ function()
     -- r4rs essential procedure: (string->symbol string)
     ['string->symbol'] = function(string)
       if is_str(string) then
-        sym(get_str(string))
+        return sym(get_str(string))
       else
         error("TODO: symbol->string")
       end
@@ -1122,7 +2553,7 @@ function()
     -- r4rs essential procedure: (symbol->string symbol)
     ['symbol->string'] = function(symbol)
       if is_sym(symbol) then
-        str(get_sym(symbol))
+        return str(get_sym(symbol))
       else
         error("TODO: symbol->string")
       end
@@ -1150,8 +2581,7 @@ function()
     end,
     -- r4rs essential procedure: (vector? obj)
     ['vector?'] = function(obj)
-      -- TODO
-      error("TODO: vector?")
+      return is_vector(obj)
     end,
     ['vector-fill!'] = function(vector, fill)
       -- r4rs procedure: vector-fill! vector fill
@@ -1190,6 +2620,7 @@ function()
   return procedures
 end
 
+-- re, assoc: http://www.cs.utexas.edu/ftp/garbage/cs345/schintro-v13/schintro_106.html
 define_non_prim_standard_procedures =
 function(env)
   -- TODO: assq, assv, assoc possible to DRY
@@ -1622,8 +3053,22 @@ atom =
 function(ss)
   -- TODO: remove rg_float = "(-?(?:0|[1-9]\\d*)(?:\\.\\d+(?i:e[+-]?\\d+)|\\.\\d+|(?i:e[+-]?\\d+)))"
   -- TODO: remove rg_integer = "[+-]?%d+"
+  --
+  --[[
+
+from https://www.scheme.com/tspl2/intro.html#g1478
+
+Keywords, variables, and symbols are collectively called identifiers. Identifiers may be formed from the following set of characters:
+
+the lowercase letters a through z,
+the uppercase letters A through Z,
+the digits 0 through 9, and
+the characters ? ! . + - * / < = > : $ % ^ & _ ~.
+
+  ]]
   local rg_symbol = "[a-zA-Z+-./<=>*!?:%$%_&~%^][0-9a-zA-Z+-./<=>*!?:%$%_&~%^]*"
-  local rg_char = "#\\[0-9a-zA-Z ]" -- TODO: not enough, will include #\mutliple_chars
+  --local rg_symbol = "[a-zA-Z?!.+-*/<=>:%$%%%^&%_~][a-zA-Z0-9?!.+-*/<=>:%$%%%^&%_~]*"
+  local rg_char = "#\\." -- TODO: not enough, will include #\mutliple_chars
   local rg_char_space = "#\\space"
   local rg_char_newline = "#\\newline"
   local rg_boolean = "#[ft]"
@@ -1696,29 +3141,20 @@ function(expr, env)
   elseif is_list(expr) then
     local op = expr[1]
     local args = slice(expr, 2, #expr)
+    --TODO: refactor out num_clauses and use args instead of expr below (see scd version) 
 
     -- TODO https://www.gnu.org/software/mit-scheme/documentation/mit-scheme-ref/Conditionals.html
     if op == sym("and") then
       -- r4rs essential syntax: (and <test1> ...)
-      local num_clauses = #expr-1
+      local value = true
+      local index = 1
 
-      if num_clauses == 0 then
-        return true
-      else
-        local i = 1
-        local val
-        repeat
-          local test_expr = expr[1+i]
-          val = eval(test_expr, env)
-
-          if val == true then
-            return val
-          end
-          i = i + 1
-        until i > num_clauses
-
-        return val
+      while value ~= false and index <= #args do
+        value = eval(args[index], env)
+        index = index + 1
       end
+
+      return value
     elseif op == sym("begin") then
       -- r4rs essential syntax: (begin <expression1> <expression2> ...)
       local tab = inject(args, {nil, env}, function(val_env, exp)
@@ -1851,8 +3287,8 @@ function(expr, env)
         table.insert(new_body, rest)
         table.insert(new_body, body)
 
-        print_table({binding}, "{binding}")
-        print_table(new_body, "new_body")
+        -- TODO print_table({binding}, "{binding}")
+        -- TODO print_table(new_body, "new_body")
         local func = make_let({binding}, new_body, env)
         if type(func) == "function" then -- TODO: understand this!
           return func()
@@ -1868,6 +3304,7 @@ function(expr, env)
       -- TODO https://www.gnu.org/software/mit-scheme/documentation/mit-scheme-ref/Conditionals.html
     elseif op == sym("or") then
       -- r4rs essential syntax: (or <test1> ...)
+      --[[
       local num_clauses = #expr-1
 
       if num_clauses == 0 then
@@ -1887,6 +3324,16 @@ function(expr, env)
 
         return val
       end
+      ]]
+      local value = false
+      local index = 1
+
+      while value == false and index <= #args do
+        value = eval(args[index], env)
+        index = index + 1
+      end
+
+      return value
     elseif op == sym("quote") then
       -- r4rs essential syntax: (quote <datum>)
       return args[1]
@@ -2069,7 +3516,7 @@ end
 
 is_list =
 function(obj)
-  return type(obj) == "table" and not getmetatable(obj)
+  return type(obj) == "table" and getmetatable(obj) == nil
 end
 
 is_vector =
@@ -2084,7 +3531,7 @@ end
 
 is_pair =
 function(obj)
-  return type(obj) == "table" and #obj > 0 -- TODO: not accurate
+  return type(obj) == "table" and not getmetatable(obj) and #obj > 0 -- TODO: not accurate
 end
 
 is_empty_list =
@@ -2365,6 +3812,13 @@ assert_error_thrown = function(func, err_msg)
   end
 end
 
+assert_no_error_thrown = function(func)
+  local ok, err = pcall(func)
+  if not ok then
+    error("assertion failed, expected no thrown error, but error " .. quote(err) .. " was thrown")
+  end
+end
+
 --[[
 lua specific utils
 ]]
@@ -2552,7 +4006,7 @@ as_string = function(a)
   elseif type(a) == "table" then
     return table_as_string2(a)
   else
-    return ""..a
+    return tostring(a)
   end
 end
 
@@ -2624,10 +4078,10 @@ end
 
 -- main
 
-run_tests()
+run_tests() -- TODO: should not clobber _G
 
 print("tests: ok")
 
 init_ns_environment(_G)
 
-repl()
+run_repl()
