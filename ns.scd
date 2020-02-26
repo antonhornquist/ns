@@ -541,7 +541,6 @@ standard_procedures =
 		},
 		// r4rs essential procedure: (map proc list1 list2 ...)
 		'map': { |proc ... lists|
-
 			lists.first.collect { |element, i|
 				var args = lists.collect { |list|
 					list[i]
@@ -916,12 +915,6 @@ define_non_prim_standard_procedures =
       [else (member obj (cdr list))])))
 
 ; r4rs essential procedures: caar ... cdddr
-;
-
-(define caar
-  (lambda (list)
-    (car (car list))))
-
 ;
 
 (define caar

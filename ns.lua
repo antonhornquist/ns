@@ -21,9 +21,6 @@ quasiquote does not support nesting
 -- tests
 
 local run_tests
-local run_rep_tests1
-local run_rep_tests2
-local run_rep_tests3
 local ss_test
 local ss_as_string_test
 local read_test
@@ -123,250 +120,14 @@ local invoke_function_by_eval
 -- tests
 
 run_tests = function()
-  _NS_ENV = {}
-  init_ns_environment(_NS_ENV)
-  -- run_rep_tests1()
-  -- run_rep_tests2()
-  -- run_rep_tests3()
   ss_test()
   ss_as_string_test()
   read_test()
+
+  _NS_ENV = {}
+  init_ns_environment(_NS_ENV)
+
   run_applicable_r4rs_examples_as_tests()
-end
-
--- TODO: assertions
-run_rep_tests1 = function()
-  rep("(append (quote (1 2 3)) (quote (4 5 99)))")
-
-  rep("(+ 2 5)")
-
-  rep("(quote (+ 2 5))")
-
-  rep("(define tst 4321)")
-
-  rep("(set! tst 1234)")
-
-  rep("tst")
-
-  rep("(define tst (+ 2 5))")
-
-  rep("tst")
-
-  rep(
-  [[
-  (define func
-  (lambda (op) (op 4 2)))
-  ]]
-  )
-
-  rep("(func +)")
-  rep("(func -)")
-  rep("(func *)")
-  rep("(func /)")
-
-  print("test-1")
-  print(_NS_ENV["func"](function(a, b) return a + b + b end))
-  print()
-  print()
-  print()
-
-  rep([[
-  (lambda (x) (1))
-  ]])
-
-  rep([[
-  (if #t 1 2)
-  ]])
-
-  rep([[
-  (define factorial
-  (lambda [n]
-  (if
-  (<= n 1) 1 (* n (factorial (- n 1))))))
-  ]])
-
-  rep([[
-  (factorial 12)
-  ]])
-
-  --[[ TODO: strings do not work
-  (cond
-  [(<= 5 2) (display "yeah")]
-  [(not (= 1 1)) (display "two)]
-  [else (display "else")])
-  ]]
-
-  rep([[
-  (cond
-  [(<= 7 5) 1]
-  [(not (= 1 1)) 2]
-  [else 3])
-  ]])
-
-  rep([[
-  (case (+ 3 3)
-  [(1 6 7) (quote one)]
-  [(a 7 c) (quote two)]
-  [else (quote else)])
-  ]])
-
-  rep([[
-  (and (= 2 2) (> 2 1))
-  ]])
-
-  rep([[
-  (and 1 2 (quote c) (quote (f g)))]])
-
-  rep([[
-  (display "test")
-  ]])
-
-  rep([[
-  (define my-test
-  (lambda (a)
-  (begin
-  (display (string-append "a+5=" (+ a 5)))
-  (newline)
-  (display (/ a 2))
-  (newline)
-  (display (* a 2))
-  (newline)))
-  )
-  ]])
-
-  rep("(my-test 2)")
-
-  print("test-1")
-  print(_G["my-test"](2))
-  print()
-  print()
-  print()
-
-  rep("#a")
-
-  -- TODO rep("#(1 2 3)")
-
-  rep("(boolean? #a)")
-
-  rep("(boolean? #t)")
-
-  rep("(eqv? \"abc\" \"cdef\")")
-
-  rep("(eqv? \"abc\" \"abc\")")
-
-  rep("(reverse (quote (1 2 3)))")
-
-  rep("(reverse '(1 2 3))")
-
-  rep("(assoc 'a '((a b) (c d) (e f)))")
-  rep("(assoc 'b '((a b) (c d) (e f)))")
-  rep("(assoc 'c '((a b) (c d) (e f)))")
-
-  rep("`(assoc c ((a b) (c d) (e f)))")
-  rep("(quasiquote (assoc c ((a b) (c d) (e f))))")
-
-  rep("(define d 4424)")
-  rep("(define l '(1 2 3))")
-  rep("`(assoc c ((a b) (c ,d) (e @l)))")
-end
-
--- TODO: assertions
-run_rep_tests2 = function()
-  rep([[
-  (define println (lambda (x) (begin (display x) (newline))))
-  ]])
-  rep([[
-  (define identity (lambda (x) x))
-  ]])
-  rep([[
-  (define sc/read-sound identity)
-  ]])
-  rep([[
-  (define sc/free-sound identity)
-  ]])
-  rep([[
-  (define sc/play-seq
-  (lambda (seq_def)
-  (let ((dispatch
-  (lambda (cmd)
-  (let ( (op (car cmd)) (args (cdr cmd)) )
-  (cond ((equal? cmd 'stop) (println "stop!"))
-  (else (println (string-append "idunno about this op: " (symbol->string op)))))))))
-  dispatch)))
-  ]])
-  rep([[
-  (define bassdrum (sc/read-sound "BD_09.wav"))
-  ]])
-  rep([[
-  (define snare (sc/read-sound "SN_43.wav"))
-  ]])
-  rep([[
-  (define hihat (sc/read-sound "Hihat.wav"))
-  ]])
-  rep([[
-  (define seq1-def 
-  `(
-  (tempo 130 bpm)
-  (kit b ,bassdrum s ,snare h ,hihat)
-  (sequence
-  b___b___b___b_b_
-  ____s_______s_ss
-  __h___h___h__hh_)))
-  ]])
-  rep([[
-  (define seq1-def-noquasi
-  (list
-  '(tempo 130 bpm)
-  (list 'kit 'b bassdrum 's snare 'h hihat)
-  '(sequence
-  b___b___b___b_b_
-  ____s_______s_ss
-  __h___h___h__hh_)))
-  ]])
-  rep([[
-  (define seq1-kit
-  (list 'b bassdrum 's snare 'h hihat))
-  ]])
-  rep([[
-  (define seq1-def-noquasi-vari
-  (list '(tempo 130 bpm)
-  (append '(kit) seq1-kit)
-  '(sequence
-  b___b___b___b_b_
-  ____s_______s_ss
-  __h___h___h__hh_)))
-  ]])
-  rep("seq1-def")
-  --  rep([[
-  --(for-each println
-  --		  (list
-  --			(assoc 'kit seq1-def)
-  --			(assoc 'tempo seq1-def)
-  --			(assoc 'sequence seq1-def)))
-  --]])
-end
-
--- TODO: assertions
-run_rep_tests3 = function()
-  imaginary = [[
-  (define hihat2 "Hihat.wav")
-  (define hihat2 "Hats R Us.wav")
-  (define hihat2 "Snare
-  Me
-  Then.wav")
-
-  (define hihat2 "Snare
-  Me
-  Then.wav")
-
-  `(set-kit b ,bassdrum s ,snare h ,hihat2)
-
-  '(set-sequence
-  b___b___b_bb__b_
-  ____s__s_s__s_ss
-  __h___h___h__hh_)
-  ]]
-  rep(imaginary)
 end
 
 ss_test = function()
@@ -441,17 +202,17 @@ run_applicable_r4rs_examples_as_tests = function()
   2.2 Whitespace and comments
 ]]
 
---  assert_no_error_thrown(function()
---    test([[
---;;; The FACT procedure computes the factorial
---;;; of a non-negative integer.
---(define fact
---  (lambda (n)
---    (if (= n 0)
---        1 ; Base case: return 1
---        (* n (fact (- n 1))))))
---    ]])
---  end)
+  assert_no_error_thrown(function()
+    test([[
+;;; The FACT procedure computes the factorial
+;;; of a non-negative integer.
+(define fact
+  (lambda (n)
+    (if (= n 0)
+        1 ; Base case: return 1
+        (* n (fact (- n 1))))))
+    ]])
+  end)
 
 --[[
   3.4 Disjointness of types
@@ -506,6 +267,7 @@ run_applicable_r4rs_examples_as_tests = function()
   assert_equal(false, test("(string? (vector 1 3 6))"))
   assert_equal(false, test("(procedure? (vector 1 3 6))"))
 
+  --TODO
   --assert_equal(false, test("(boolean? (cons 1 2))"))
   --assert_equal(false, test("(symbol? (cons 1 2))"))
   --assert_equal(false, test("(char? (cons 1 2))"))
@@ -622,7 +384,7 @@ run_applicable_r4rs_examples_as_tests = function()
   ]])
   assert_equal(10, test("(add4 6)"))
 
-  -- TODO assert_equal({3, 4, 5, 6}, test("((lambda x x) 3 4 5 6)"))
+  assert_equal({3, 4, 5, 6}, test("((lambda x x) 3 4 5 6)"))
 
   --TODO
   --assert_equal({5, 6}, test([[
@@ -742,6 +504,7 @@ run_applicable_r4rs_examples_as_tests = function()
         (* z x)))
   ]]))
 
+  --TODO
   --assert_equal(true, test([[
   --  (letrec ((even?
   --            (lambda (n)
@@ -1102,16 +865,14 @@ run_applicable_r4rs_examples_as_tests = function()
     (equal? 'a 'a)
   ]]))
 
-  -- TODO: bug
-  --assert_equal(true, test([[
-  --  (equal? '(a) '(a))
-  --]]))
+  assert_equal(true, test([[
+    (equal? '(a) '(a))
+  ]]))
 
-  -- TODO: bug
-  --assert_equal(true, test([[
-  --  (equal? '(a (b) c)
-  --          '(a (b) c))
-  --]]))
+  assert_equal(true, test([[
+    (equal? '(a (b) c)
+            '(a (b) c))
+  ]]))
 
   assert_equal(true, test([[
     (equal? "abc" "abc")
@@ -1121,11 +882,10 @@ run_applicable_r4rs_examples_as_tests = function()
     (equal? 2 2)
   ]]))
 
-  -- TODO: make-vector
-  --assert_equal(true, test([[
-  --  (equal? (make-vector 5 'a)
-  --          (make-vector 5 'a))
-  --]]))
+  assert_equal(true, test([[
+    (equal? (make-vector 5 'a)
+            (make-vector 5 'a))
+  ]]))
 
   assert_no_error_thrown(function()
     test([[
@@ -1297,7 +1057,7 @@ run_applicable_r4rs_examples_as_tests = function()
   assert_equal({sym("a"), sym("b"), sym("c"), sym("d")}, test("(append '(a) '(b c d))"))
   assert_equal({sym("a"), {sym("b")}, {sym("c")}}, test("(append '(a (b)) '((c)))"))
   -- TODO: dotted pair (append '(a b) '(c . d)) // ==>  (a b c . d)
-  --assert_equal(sym("a"), test("(append '() 'a)")) TODO: (append '() 'a) // ==>  a
+  --assert_equal(sym("a"), test("(append '() 'a)")) --TODO: (append '() 'a) // ==>  a
 
   --[[
   essential procedure: reverse list
@@ -1342,11 +1102,10 @@ run_applicable_r4rs_examples_as_tests = function()
   assert_equal({sym("b"), sym("c")}, test("(memq 'b '(a b c))"))
   assert_equal(false, test("(memq 'a '(b c d))"))
   assert_equal(false, test("(memq (list 'a) '(b (a) c))"))
-  -- TODO: member
-  --assert_equal({{sym("a")}, sym("c")}, test([[
-  --  (member (list 'a)
-  --          '(b (a) c))
-  --]]))
+  assert_equal({{sym("a")}, sym("c")}, test([[
+    (member (list 'a)
+            '(b (a) c))
+  ]]))
   assert_no_error_thrown(function()
     test([[
       (memq 101 '(100 101 102))
@@ -1375,8 +1134,8 @@ run_applicable_r4rs_examples_as_tests = function()
   assert_equal({sym("b"), 2}, test("(assq 'b e)"))
   assert_equal(false, test("(assq 'd e)"))
   assert_equal(false, test("(assq (list 'a) '(((a)) ((b)) ((c))))"))
-  -- TODO: assoc assert_equal({{sym("a")}}, test("(assoc (list 'a) '(((a)) ((b)) ((c))))"))
-  --
+  assert_equal({{sym("a")}}, test("(assoc (list 'a) '(((a)) ((b)) ((c))))"))
+
   assert_no_error_thrown(function()
     test([[
       (assq 5 '((2 3) (5 7) (11 13)))
@@ -1678,8 +1437,8 @@ run_applicable_r4rs_examples_as_tests = function()
   procedure: apply proc arg1 ... args
   ]]
 
-  -- TODO: apply
-  --assert_equal(7, test("(apply + (list 3 4))"))
+  assert_equal(7, test("(apply + (list 3 4))"))
+
   assert_no_error_thrown(function()
     test([[
       (define compose
@@ -1688,31 +1447,34 @@ run_applicable_r4rs_examples_as_tests = function()
             (f (apply g args)))))
     ]])
   end)
-  --assert_equal(30, test("((compose sqrt *) 12 75)"))
+  assert_equal(30, test("((compose sqrt *) 12 75)"))
 
   --[[
   essential procedure: map proc list1 list2 ...
   ]]
 
-  -- TODO: map incorrect assert_equal({sym("b"), sym("e"), sym("h")}, test("(map cadr '((a b) (d e) (g h)))"))
+  assert_equal({sym("b"), sym("e"), sym("h")}, test("(map cadr '((a b) (d e) (g h)))"))
 
-  -- TODO: map incorrect
-  --assert_equal(
-  --  {1, 4, 27, 256, 3125},
-  --  test([[
-  --    (map (lambda (n) (expt n n))
-  --         '(1 2 3 4 5))
-  --  ]])
+  assert_equal(
+    {1, 4, 27, 256, 3125},
+    test([[
+      (map (lambda (n) (expt n n))
+           '(1 2 3 4 5))
+    ]])
+  )
 
-  -- TODO: map incorrect assert_equal({5, 7, 9}, test("(map + '(1 2 3) '(4 5 6))"))
+  assert_equal({5, 7, 9}, test("(map + '(1 2 3) '(4 5 6))"))
 
-  --[[
+  assert_no_error_thrown(function()
+    test([[
     (let ((count 0))
       (map (lambda (ignored)
              (set! count (+ count 1))
              count)
-           '(a b c))) // ==>  unspecified
-  ]]
+           '(a b c)))
+    ]])
+  end) -- ==>  unspecified
+
 
   --[[
   essential procedure: for-each proc list1 list2 ...
@@ -1981,8 +1743,13 @@ function()
     end,
     -- r4rs essential procedure: (apply proc args)
     -- r4rs procedure: (apply proc arg1 ... args)
-    ['apply'] = function(proc, args)
-      error("TODO: apply")
+    ['apply'] = function(proc, ...)
+      local args = {...}
+      if #args == 1 then
+        return invoke_function(proc, args[1])
+      else
+        return invoke_function(proc, args)
+      end
     end,
     -- r4rs essential procedure: (boolean? obj)
     ['boolean?'] = function(obj)
@@ -2184,7 +1951,8 @@ function()
     end,
     -- r4rs essential procedure: (equal? obj1 obj2)
     ['equal?'] = function(obj1, obj2)
-      return obj1 == obj2 -- TODO
+      -- return obj1 == obj2 -- TODO
+      return deepcompare(obj1, obj2) -- TODO
     end,
     ['expt'] = function(z1, z2)
       -- r4rs procedure: expt z1 z2
@@ -2280,7 +2048,12 @@ function()
     -- r4rs essential procedure: (make-vector k)
     ['make-vector'] = function(k, fill)
       -- procedure: make-vector k fill
-      error("TODO: make-vector")
+      local vector = {}
+      for index=1,k do
+        vector[index]=fill
+      end
+      setmetatable(vector, vector_mt)
+      return vector
     end,
     -- r4rs essential procedure: (map proc list1 list2 ...)
     ['map'] = function(proc, ...)
@@ -2288,29 +2061,14 @@ function()
 
       local result = {}
 
-      --[[
-      list = lists[1]
-      for i,value in ipairs(list) do
-        result[i] = invoke_function(proc, {value})
-      end
-      ]]
-      local args = {}
-      local list_lengths = {}
-      for i, list in ipairs(lists) do
-        local list = lists[i]
-        list_lengths[i] = #list
-        for j, value in ipairs(list) do
-          if args[j] == nil then
-            args[j] = {}
-          end
-          table.insert(args[j], value)
+      local first_list = lists[1]
+
+      for index=1,#first_list do
+        local args = {}
+        for _,list in ipairs(lists) do
+          table.insert(args, list[index])
         end
-      end
-
-      print_table(args, "args:")
-
-      for i=1,list_lengths[1] do -- TODO: lists assumed to be of same length, check this
-        result[i] = invoke_function(proc, args)
+        result[index] = invoke_function(proc, args)
       end
 
       return result
@@ -2696,12 +2454,6 @@ function(env)
 
 ;
 
-(define caar
-  (lambda (list)
-    (car (car list))))
-
-;
-
 (define cadr
   (lambda (list)
     (car (cdr list))))
@@ -2869,12 +2621,17 @@ end
 parse =
 function (ss)
   local rg_ignore = "^%s+"
+  local rg_comment_prefix = ";"
 
   local value
   local result
 
   -- TODO print(ss_as_string(ss))
 
+  ss_skip(ss, rg_ignore)
+  while ss_scan(ss, rg_comment_prefix) do
+    ss_skip_until(ss, ".-\n")
+  end
   ss_skip(ss, rg_ignore)
 
   local open_paren = ss_scan(ss, "^%(") or ss_scan(ss, "^%[")
@@ -3223,21 +2980,33 @@ function(expr, env)
       end
     elseif op == sym("lambda") then
       -- r4rs essential syntax: (lambda <formals> <body>)
-      local vars = expr[2]
-      local body = expr[3]
       if #expr > 3 then
         -- error("in "..scheme_str(expr) ..": lambda body error: 1 expression expected, found "..#expr)
         error("lambda body error: 1 expression expected, found "..#expr)
       end
 
+      local formals = args[1]
+      local body = args[2]
+
+      -- TODO return make_lambda(formals, body, env)
       local vars_by_name = {}
-      for i,v in ipairs(vars) do
-        vars_by_name[i] = get_sym(v)
-      end
-      return function(...)
-        local args = {...}
-        -- TODO print_table(args)
-        return eval(body, make_env(vars_by_name, args, env))
+
+      if is_list(formals) then
+        for i,v in ipairs(formals) do
+          vars_by_name[i] = get_sym(v)
+        end
+        return function(...)
+          local args = {...}
+          -- TODO print_table(args)
+          return eval(body, make_env(vars_by_name, args, env))
+        end
+      else
+        vars_by_name[1] = get_sym(formals)
+        return function(...)
+          local list = {...} -- TODO: add and use make-list instead, for clarity
+          local args = {list}
+          return eval(body, make_env(vars_by_name, args, env))
+        end
       end
     elseif op == sym("let") then
       -- r4rs essential syntax: (let <bindings> <body>)
@@ -3585,7 +3354,7 @@ end
 ss_matches =
 function(ss, regexp)
   local match
-  match = ss_pr_find_regext_directly_after_pos(ss, regexp)
+  match = ss_pr_find_regexp_directly_after_pos(ss, regexp)
   if match then
     if ss['debug'] then
       print("matched: '"..match.."'")
@@ -3599,7 +3368,7 @@ end
 ss_scan =
 function(ss, regexp)
   local match
-  match = ss_pr_find_regext_directly_after_pos(ss, regexp)
+  match = ss_pr_find_regexp_directly_after_pos(ss, regexp)
   if match then
     if ss['debug'] then
       print("scanned: '"..match.."'")
@@ -3626,7 +3395,7 @@ end
 ss_skip =
 function(ss, regexp)
   local match
-  match = ss_pr_find_regext_directly_after_pos(ss, regexp)
+  match = ss_pr_find_regexp_directly_after_pos(ss, regexp)
   if match then
     if ss['debug'] then
       print("skipped: '"..match.."'")
@@ -3713,7 +3482,7 @@ end
 stringscanner implementation (considered private)
 ]]
 
-ss_pr_find_regext_directly_after_pos =
+ss_pr_find_regexp_directly_after_pos =
 function(ss, regexp)
   local match_data
   match_data = ss_pr_find_first_regexp(ss, ss['str'], regexp, ss['pos'])
