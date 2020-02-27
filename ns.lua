@@ -76,6 +76,7 @@ local get_str
 local chr
 local get_chr
 
+local pair_mt = {}
 local vector_mt = {}
 local hash_mt = {}
 
@@ -188,7 +189,10 @@ read_test = function()
 end
 
 run_applicable_r4rs_examples_as_tests = function()
+  local r4rs_examples = 0
+
   local test = function(str)
+    r4rs_examples = r4rs_examples + 1
     return read_eval(str, _NS_ENV)
   end
 
@@ -267,15 +271,14 @@ run_applicable_r4rs_examples_as_tests = function()
   assert_equal(false, test("(string? (vector 1 3 6))"))
   assert_equal(false, test("(procedure? (vector 1 3 6))"))
 
-  --TODO
-  --assert_equal(false, test("(boolean? (cons 1 2))"))
-  --assert_equal(false, test("(symbol? (cons 1 2))"))
-  --assert_equal(false, test("(char? (cons 1 2))"))
-  --assert_equal(false, test("(vector? (cons 1 2))"))
-  --assert_equal(true, test("(pair? (cons 1 2))"))
-  --assert_equal(false, test("(number? (cons 1 2))"))
-  --assert_equal(false, test("(string? (cons 1 2))"))
-  --assert_equal(false, test("(procedure? (cons 1 2))"))
+  assert_equal(false, test("(boolean? (cons 1 2))"))
+  assert_equal(false, test("(symbol? (cons 1 2))"))
+  assert_equal(false, test("(char? (cons 1 2))"))
+  assert_equal(false, test("(vector? (cons 1 2))"))
+  assert_equal(true, test("(pair? (cons 1 2))"))
+  assert_equal(false, test("(number? (cons 1 2))"))
+  assert_equal(false, test("(string? (cons 1 2))"))
+  assert_equal(false, test("(procedure? (cons 1 2))"))
 
   assert_equal(false, test("(boolean? 79)"))
   assert_equal(false, test("(symbol? 79)"))
@@ -369,12 +372,10 @@ run_applicable_r4rs_examples_as_tests = function()
 
   assert_equal("function", type(test("(lambda (x) (+ x x))"))) -- (lambda (x) (+ x x)) //  ==>  a procedure
   assert_equal(8, test("((lambda (x) (+ x x)) 4)"))
-  test(
-[[
-  (define reverse-subtract
-    (lambda (x y) (- y x)))
-]]
-  )
+  test([[
+    (define reverse-subtract
+      (lambda (x y) (- y x)))
+  ]])
   assert_equal(3, test("(reverse-subtract 7 10)"))
 
   test([[
@@ -504,7 +505,7 @@ run_applicable_r4rs_examples_as_tests = function()
         (* z x)))
   ]]))
 
-  --TODO
+  --TODO: letrec
   --assert_equal(true, test([[
   --  (letrec ((even?
   --            (lambda (n)
@@ -592,6 +593,17 @@ run_applicable_r4rs_examples_as_tests = function()
   -- TODO: dotted pairs
   -- `((foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons)))
   -- ==>  ((foo 7) . cons)
+  --local pair = test([[
+  --  `((foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons)))
+  --]])
+  --assert_equal(
+  --  true,
+  --  is_pair(pair)
+  --)
+  --assert_equal(
+  --  {{sym("foo"), 7}, sym("cons")},
+  --  pair
+  --)
 
   -- TODO: # vs vector
   -- TODO: quotes as (vector
@@ -679,7 +691,7 @@ run_applicable_r4rs_examples_as_tests = function()
   assert_equal(true, test("(eqv? 2 2)"))
   assert_equal(true, test("(eqv? '() '())"))
   assert_equal(true, test("(eqv? 100000000 100000000)"))
-  -- TODO: dotted pair assert_equal(false, test("(eqv? (cons 1 2) (cons 1 2))"))
+  assert_equal(false, test("(eqv? (cons 1 2) (cons 1 2))"))
   assert_equal(false, test([[
     (eqv? (lambda () 1)
           (lambda () 2))
@@ -1599,6 +1611,7 @@ run_applicable_r4rs_examples_as_tests = function()
     (list-length ’(a b . c)) ==> #f
   ]]
 
+  -- print("r4rs examples: "..r4rs_examples)
 end
 
 --[[
@@ -1877,8 +1890,13 @@ function()
     end,
     -- r4rs essential procedure: (cons obj1 obj2)
     ['cons'] = function(obj1, obj2)
-      table.insert(obj2, 1, obj1)
-      return obj2
+      if is_list(obj2) then
+        local new_list = duplicate_list(obj2)
+        table.insert(new_list, 1, obj1)
+        return new_list
+      else
+        return new_pair(obj1, obj2)
+      end
     end,
     -- essential procedure: (display obj)
     -- essential procedure: (display obj port) TODO
@@ -3234,6 +3252,8 @@ function(obj)
     return "a procedure"
   elseif is_list(obj) then
     return generic_list_representation(obj)
+  elseif is_pair(obj) then
+    return "(".. obj[1] .. " . " .. obj[2] .. ")"
   elseif is_vector(obj) then
     return "#"..generic_list_representation(obj)
   elseif is_hash(obj) then
@@ -3300,7 +3320,17 @@ end
 
 is_pair =
 function(obj)
-  return type(obj) == "table" and not getmetatable(obj) and #obj > 0 -- TODO: not accurate
+  local is_ns_pair = (type(obj) == "table" and getmetatable(obj) == pair_mt)
+  local is_ns_list = is_list(obj)
+  local is_ns_empty_list = is_empty_list(obj)
+  
+  if is_ns_empty_list then
+    return false
+  elseif is_ns_pair or is_ns_list then
+    return true
+  else
+    return false
+  end
 end
 
 is_empty_list =
@@ -3309,7 +3339,7 @@ function(obj)
 end
 
 --[[
-lua specific sym/str/chr utility functions
+lua specific utility functions
 ]]
 
 sym = function(str)
@@ -3334,6 +3364,12 @@ end
 
 get_chr = function(str)
   return string.sub(str, #char_prefix+1, #str)
+end
+
+new_pair = function(obj1, obj2)
+  local pair = {obj1, obj2}
+  setmetatable(pair, pair_mt)
+  return pair
 end
 
 --[[
@@ -3591,6 +3627,14 @@ end
 --[[
 lua specific utils
 ]]
+
+duplicate_list = function(list)
+  local new_list = {}
+  for i, element in ipairs(list) do
+    table.insert(new_list, element) -- TODO: recursively duplicate object *with* metatable setting
+  end
+  return new_list
+end
 
 pop_first = function(tab)
   return table.remove(tab, 1)
