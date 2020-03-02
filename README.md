@@ -1,2 +1,2 @@
 # NS
-A R4RS Scheme-inspired programming language on top of Lua and SClang
+A R4RS Scheme-inspired programming language running on top of Lua and SClang
